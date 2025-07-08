@@ -79,27 +79,11 @@ jobs:
           env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o $output_name .
         shell: bash
 
-      - name: Create archive
-        run: |
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            archive_name="ask-${{ matrix.goos }}-${{ matrix.goarch }}.zip"
-            if command -v zip &> /dev/null; then
-              zip $archive_name ask-${{ matrix.goos }}-${{ matrix.goarch }}.exe
-            else
-              7z a $archive_name ask-${{ matrix.goos }}-${{ matrix.goarch }}.exe
-            fi
-          else
-            archive_name="ask-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
-            tar -czf $archive_name ask-${{ matrix.goos }}-${{ matrix.goarch }}
-          fi
-          echo "ARCHIVE_NAME=$archive_name" >> $GITHUB_ENV
-        shell: bash
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ask-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ env.ARCHIVE_NAME }}
+          path: ask-${{ matrix.goos }}-${{ matrix.goarch }}*
 
   release:
     needs: build
