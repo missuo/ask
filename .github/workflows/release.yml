@@ -6,10 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  release:
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,47 +22,96 @@ jobs:
       - name: Run tests
         run: go test -v ./...
 
-      - name: Build binaries
+  build:
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: "386"
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+          - os: windows-latest
+            goos: windows
+            goarch: "386"
+          - os: ubuntu-latest
+            goos: freebsd
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: freebsd
+            goarch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Build binary
         run: |
-          # Create dist directory
-          mkdir -p dist
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            output_name="ask-${{ matrix.goos }}-${{ matrix.goarch }}.exe"
+          else
+            output_name="ask-${{ matrix.goos }}-${{ matrix.goarch }}"
+          fi
           
-          # Build for different platforms
-          platforms=(
-            "linux/amd64"
-            "linux/arm64"
-            "linux/386"
-            "darwin/amd64"
-            "darwin/arm64"
-            "windows/amd64"
-            "windows/386"
-            "freebsd/amd64"
-            "freebsd/arm64"
-          )
-          
-          for platform in "${platforms[@]}"; do
-            platform_split=(${platform//\// })
-            GOOS=${platform_split[0]}
-            GOARCH=${platform_split[1]}
-            
-            output_name="ask-${GOOS}-${GOARCH}"
-            if [ $GOOS = "windows" ]; then
-              output_name+='.exe'
-            fi
-            
-            echo "Building for $GOOS/$GOARCH..."
-            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o dist/$output_name .
-            
-            # Create tarball for non-Windows platforms
-            if [ $GOOS != "windows" ]; then
-              tar -czf dist/ask-${GOOS}-${GOARCH}.tar.gz -C dist $output_name
-              rm dist/$output_name
+          echo "Building for ${{ matrix.goos }}/${{ matrix.goarch }}..."
+          env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o $output_name .
+        shell: bash
+
+      - name: Create archive
+        run: |
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            archive_name="ask-${{ matrix.goos }}-${{ matrix.goarch }}.zip"
+            if command -v zip &> /dev/null; then
+              zip $archive_name ask-${{ matrix.goos }}-${{ matrix.goarch }}.exe
             else
-              # Create zip for Windows
-              zip -j dist/ask-${GOOS}-${GOARCH}.zip dist/$output_name
-              rm dist/$output_name
+              7z a $archive_name ask-${{ matrix.goos }}-${{ matrix.goarch }}.exe
             fi
-          done
+          else
+            archive_name="ask-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
+            tar -czf $archive_name ask-${{ matrix.goos }}-${{ matrix.goarch }}
+          fi
+          echo "ARCHIVE_NAME=$archive_name" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ask-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.ARCHIVE_NAME }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
       - name: Generate checksums
         run: |
