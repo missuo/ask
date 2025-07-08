@@ -151,8 +151,93 @@ cleanup() {
     rm -f ask-*-*
 }
 
+# Function to uninstall binary
+uninstall() {
+    print_info "Starting uninstallation of $BINARY_NAME..."
+    
+    if [[ ! -f "$INSTALL_DIR/$BINARY_NAME" ]]; then
+        print_warn "$BINARY_NAME is not installed in $INSTALL_DIR"
+        exit 0
+    fi
+    
+    print_info "Removing $BINARY_NAME from $INSTALL_DIR..."
+    
+    if [[ ! -w "$INSTALL_DIR" ]]; then
+        print_warn "No write permission to $INSTALL_DIR. Trying with sudo..."
+        sudo rm -f "$INSTALL_DIR/$BINARY_NAME"
+    else
+        rm -f "$INSTALL_DIR/$BINARY_NAME"
+    fi
+    
+    if [[ ! -f "$INSTALL_DIR/$BINARY_NAME" ]]; then
+        print_info "$BINARY_NAME uninstalled successfully!"
+    else
+        print_error "Failed to uninstall $BINARY_NAME"
+        exit 1
+    fi
+}
+
+# Function to upgrade binary
+upgrade() {
+    print_info "Starting upgrade of $BINARY_NAME..."
+    
+    if [[ ! -f "$INSTALL_DIR/$BINARY_NAME" ]]; then
+        print_warn "$BINARY_NAME is not installed. Running installation instead..."
+        install_main
+        return
+    fi
+    
+    # Get current version
+    local current_version=$("$INSTALL_DIR/$BINARY_NAME" --version 2>/dev/null | head -1)
+    print_info "Current version: $current_version"
+    
+    # Check if running on Linux
+    if [[ "$(detect_os)" != "linux" ]]; then
+        print_error "This installer is designed for Linux only."
+        exit 1
+    fi
+    
+    # Detect system architecture
+    local arch=$(detect_arch)
+    local os=$(detect_os)
+    
+    # Get latest release tag
+    print_info "Fetching latest release information..."
+    local latest_tag=$(get_latest_tag)
+    if [[ $? -ne 0 || -z "$latest_tag" ]]; then
+        print_error "Failed to fetch latest release tag"
+        exit 1
+    fi
+    print_info "Latest release: $latest_tag"
+    
+    # Check if already up to date
+    if [[ "$current_version" == *"$latest_tag"* ]]; then
+        print_info "$BINARY_NAME is already up to date ($latest_tag)"
+        return
+    fi
+    
+    # Download and install new version
+    local binary_name="ask-$os-$arch"
+    local download_url="https://github.com/$REPO/releases/download/$latest_tag/$binary_name"
+    print_info "Downloading $binary_name from $download_url..."
+    
+    local binary_file=$(download_binary "$latest_tag" "$os" "$arch")
+    if [[ $? -ne 0 || -z "$binary_file" ]]; then
+        print_error "Failed to download binary"
+        exit 1
+    fi
+    
+    # Install binary
+    install_binary "$binary_file"
+    
+    # Verify installation
+    verify_installation
+    
+    print_info "Upgrade complete!"
+}
+
 # Main installation function
-main() {
+install_main() {
     print_info "Starting installation of $BINARY_NAME..."
     
     # Check if running on Linux
@@ -193,11 +278,48 @@ main() {
     # Verify installation
     verify_installation
     
-    # Cleanup
-    cleanup
-    
     print_info "Installation complete! You can now use '$BINARY_NAME' command."
     print_info "Usage: $BINARY_NAME <github-username>"
+}
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [install|upgrade|uninstall]"
+    echo ""
+    echo "Commands:"
+    echo "  install    Install $BINARY_NAME (default)"
+    echo "  upgrade    Upgrade $BINARY_NAME to latest version"
+    echo "  uninstall  Remove $BINARY_NAME from system"
+    echo ""
+    echo "Examples:"
+    echo "  bash <(curl -Ls https://raw.githubusercontent.com/$REPO/main/install.sh)"
+    echo "  bash <(curl -Ls https://raw.githubusercontent.com/$REPO/main/install.sh) upgrade"
+    echo "  bash <(curl -Ls https://raw.githubusercontent.com/$REPO/main/install.sh) uninstall"
+}
+
+# Main function
+main() {
+    local command="${1:-install}"
+    
+    case "$command" in
+        install)
+            install_main
+            ;;
+        upgrade)
+            upgrade
+            ;;
+        uninstall)
+            uninstall
+            ;;
+        --help|-h|help)
+            show_usage
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            show_usage
+            exit 1
+            ;;
+    esac
 }
 
 # Trap to ensure cleanup on exit

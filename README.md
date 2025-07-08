@@ -16,7 +16,14 @@
 ### Quick Install (Linux)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/missuo/ask/main/install.sh | bash
+# Install
+bash <(curl -Ls https://raw.githubusercontent.com/missuo/ask/main/install.sh)
+
+# Upgrade to latest version
+bash <(curl -Ls https://raw.githubusercontent.com/missuo/ask/main/install.sh) upgrade
+
+# Uninstall
+bash <(curl -Ls https://raw.githubusercontent.com/missuo/ask/main/install.sh) uninstall
 ```
 
 ### Manual Download
@@ -40,6 +47,10 @@ go build -ldflags="-s -w" -o ask .
 
 ```bash
 ask <github-username>
+
+# Show version
+ask --version
+ask -v
 ```
 
 ### Examples
@@ -50,6 +61,9 @@ ask missuo
 
 # Add SSH keys from GitHub user 'octocat'
 ask octocat
+
+# Check version
+ask --version
 ```
 
 ### Sample Output
@@ -60,6 +74,13 @@ Found 2 SSH key(s) for user 'missuo':
   2. ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... (truncated)
 
 Successfully added 2 new SSH key(s) to ~/.ssh/authorized_keys
+```
+
+### Version Information
+
+```bash
+$ ask --version
+ask version v0.0.2
 ```
 
 ## How It Works
@@ -109,12 +130,12 @@ The tool handles various error scenarios:
 
 ```bash
 # Build for current platform
-go build -ldflags="-s -w" -o ask .
+go build -ldflags="-s -w -X main.version=dev" -o ask .
 
 # Cross-compile for different platforms
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ask-linux-amd64 .
-GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o ask-darwin-arm64 .
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ask-windows-amd64.exe .
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=dev" -o ask-linux-amd64 .
+GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=dev" -o ask-darwin-arm64 .
+GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=dev" -o ask-windows-amd64.exe .
 ```
 
 ### Testing
@@ -147,6 +168,24 @@ This tool was inspired by the common need to quickly add SSH keys from GitHub us
 
 ```bash
 curl https://github.com/username.keys | tee -a ~/.ssh/authorized_keys
+```
+
+## Management
+
+### Upgrading
+
+To upgrade to the latest version:
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/missuo/ask/main/install.sh) upgrade
+```
+
+### Uninstalling
+
+To remove the tool from your system:
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/missuo/ask/main/install.sh) uninstall
 ```
 
 ## Related Projects
