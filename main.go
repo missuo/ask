@@ -337,23 +337,36 @@ func searchUsers(query string) {
 	}
 	
 	fmt.Printf("Found %d users:\n", len(searchResult.Items))
-	for _, user := range searchResult.Items {
-		displayName := user.Name
+	for i, user := range searchResult.Items {
+		// Get detailed user info to fetch name, bio, company, etc.
+		detailedUser, err := getUserInfo(user.Login)
+		if err != nil {
+			// Fallback to basic info if detailed fetch fails
+			fmt.Printf("  %s - %s\n", user.Login, user.Login)
+			continue
+		}
+		
+		displayName := detailedUser.Name
 		if displayName == "" {
-			displayName = user.Login
+			displayName = detailedUser.Login
 		}
 		
-		fmt.Printf("  %s - %s", user.Login, displayName)
+		fmt.Printf("  %s - %s", detailedUser.Login, displayName)
 		
-		if user.Bio != "" {
-			fmt.Printf(" (%s)", user.Bio)
+		if detailedUser.Bio != "" {
+			fmt.Printf(" (%s)", detailedUser.Bio)
 		}
 		
-		if user.Company != "" {
-			fmt.Printf(" [%s]", user.Company)
+		if detailedUser.Company != "" {
+			fmt.Printf(" [%s]", detailedUser.Company)
 		}
 		
 		fmt.Println()
+		
+		// Brief pause to avoid hitting rate limits
+		if i < len(searchResult.Items)-1 {
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 	
 	fmt.Printf("\nUse 'ask <username>' to add SSH keys from any of these users.\n")
