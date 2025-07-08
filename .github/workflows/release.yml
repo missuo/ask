@@ -76,7 +76,7 @@ jobs:
           fi
           
           echo "Building for ${{ matrix.goos }}/${{ matrix.goarch }}..."
-          env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o $output_name .
+          env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o $output_name .
         shell: bash
 
       - name: Upload artifact

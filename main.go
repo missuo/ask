@@ -12,10 +12,18 @@ import (
 	"time"
 )
 
+var version = "dev"
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: ask <github-username>")
 		os.Exit(1)
+	}
+
+	// Handle version flag
+	if os.Args[1] == "--version" || os.Args[1] == "-v" {
+		fmt.Printf("ask version %s\n", version)
+		os.Exit(0)
 	}
 
 	username := os.Args[1]
