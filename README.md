@@ -206,32 +206,35 @@ go test -v ./...
 
 ## Debian/Ubuntu Package Information
 
-This project is designed to be packaged for official Debian/Ubuntu repositories.
+**🚀 Coming Soon**: We are planning to submit this package to official Debian/Ubuntu repositories in the future.
 
-### Package Details
+### Planned Package Details
 - **Package Name**: `ask`
 - **Section**: `utils`
 - **Priority**: `optional`
 - **Architecture**: `any` (compiled for multiple architectures)
 - **Depends**: `libc6 (>= 2.17)` (minimal dependencies)
-- **Maintainer**: Vincent Young <missuo@example.com>
+- **Maintainer**: Vincent Young <me@owo.nz>
 - **Homepage**: https://github.com/missuo/ask
 - **VCS**: Git (https://github.com/missuo/ask.git)
 
-### Quality Assurance
-- **Lintian Clean**: No errors or warnings
-- **Debian Policy**: Complies with Debian Policy 4.6.0
+### Preparation for Official Repositories
+- **Debian Policy**: Designed to comply with Debian Policy 4.6.0
 - **FHS Compliant**: Follows Filesystem Hierarchy Standard
 - **Testing**: Automated CI/CD with comprehensive test coverage
 - **Security**: No known security vulnerabilities
 - **Upstream**: Actively maintained with regular releases
+- **Package Quality**: Will ensure Lintian clean before submission
 
-### Long-term Support Commitment
+### Future Commitment
 - **Maintenance**: Committed to long-term maintenance and support
 - **Bug Fixes**: Responsive to bug reports and security issues
 - **Updates**: Regular updates following semantic versioning
-- **Debian Integration**: Will maintain package in Debian repositories
-- **Documentation**: Comprehensive documentation and man pages
+- **Debian Integration**: Will maintain package in Debian repositories once accepted
+- **Documentation**: Will provide comprehensive documentation and man pages
+
+### Current Status
+For now, please use the installation script or download binaries directly from GitHub releases. We will announce when the package becomes available through official APT repositories.
 
 ## Contributing
 
@@ -265,7 +268,7 @@ The current stable version is v1.0.0, indicating a mature, production-ready tool
 ## Support
 
 - **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/missuo/ask/issues)
-- **Security**: Report security vulnerabilities to security@example.com
+- **Security**: Report security vulnerabilities to me@owo.nz
 - **Documentation**: Comprehensive documentation available in this README
 - **Community**: Active community support and contributions welcome
 
