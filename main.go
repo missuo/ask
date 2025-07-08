@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,8 @@ var version = "dev"
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: ask <github-username>")
+		fmt.Println("       ask search <query>")
+		fmt.Println("       ask --version")
 		os.Exit(1)
 	}
 
@@ -26,11 +29,34 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Handle search command
+	if os.Args[1] == "search" {
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: ask search <query>")
+			os.Exit(1)
+		}
+		searchUsers(os.Args[2])
+		os.Exit(0)
+	}
+
 	username := os.Args[1]
 	
 	if err := validateUsername(username); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Get user info for confirmation
+	userInfo, err := getUserInfo(username)
+	if err != nil {
+		fmt.Printf("Error fetching user info: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Ask for confirmation
+	if !confirmAddKeys(userInfo) {
+		fmt.Println("Operation cancelled.")
+		os.Exit(0)
 	}
 
 	keys, err := fetchSSHKeys(username)
@@ -255,4 +281,145 @@ func truncateKey(key string) string {
 		return key[:77] + "..."
 	}
 	return key
+}
+
+type GitHubUser struct {
+	Login     string `json:"login"`
+	Name      string `json:"name"`
+	Bio       string `json:"bio"`
+	Company   string `json:"company"`
+	Location  string `json:"location"`
+	Email     string `json:"email"`
+	PublicRepos int  `json:"public_repos"`
+}
+
+type SearchResult struct {
+	Items []GitHubUser `json:"items"`
+	TotalCount int      `json:"total_count"`
+}
+
+func searchUsers(query string) {
+	fmt.Printf("Searching for users matching '%s'...\n\n", query)
+	
+	url := fmt.Sprintf("https://api.github.com/search/users?q=%s&per_page=10", query)
+	
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Printf("Error searching users: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != 200 {
+		fmt.Printf("GitHub API returned status %d\n", resp.StatusCode)
+		return
+	}
+	
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error reading response: %v\n", err)
+		return
+	}
+	
+	var searchResult SearchResult
+	if err := json.Unmarshal(body, &searchResult); err != nil {
+		fmt.Printf("Error parsing response: %v\n", err)
+		return
+	}
+	
+	if searchResult.TotalCount == 0 {
+		fmt.Println("No users found matching your query.")
+		return
+	}
+	
+	fmt.Printf("Found %d users:\n", len(searchResult.Items))
+	for _, user := range searchResult.Items {
+		displayName := user.Name
+		if displayName == "" {
+			displayName = user.Login
+		}
+		
+		fmt.Printf("  %s - %s", user.Login, displayName)
+		
+		if user.Bio != "" {
+			fmt.Printf(" (%s)", user.Bio)
+		}
+		
+		if user.Company != "" {
+			fmt.Printf(" [%s]", user.Company)
+		}
+		
+		fmt.Println()
+	}
+	
+	fmt.Printf("\nUse 'ask <username>' to add SSH keys from any of these users.\n")
+}
+
+func getUserInfo(username string) (*GitHubUser, error) {
+	url := fmt.Sprintf("https://api.github.com/users/%s", username)
+	
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user info: %v", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode == 404 {
+		return nil, fmt.Errorf("GitHub user '%s' not found", username)
+	}
+	
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+	}
+	
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %v", err)
+	}
+	
+	var user GitHubUser
+	if err := json.Unmarshal(body, &user); err != nil {
+		return nil, fmt.Errorf("failed to parse user info: %v", err)
+	}
+	
+	return &user, nil
+}
+
+func confirmAddKeys(user *GitHubUser) bool {
+	displayName := user.Name
+	if displayName == "" {
+		displayName = user.Login
+	}
+	
+	fmt.Printf("User: %s (%s)\n", user.Login, displayName)
+	
+	if user.Bio != "" {
+		fmt.Printf("Bio: %s\n", user.Bio)
+	}
+	
+	if user.Company != "" {
+		fmt.Printf("Company: %s\n", user.Company)
+	}
+	
+	if user.Location != "" {
+		fmt.Printf("Location: %s\n", user.Location)
+	}
+	
+	fmt.Printf("Public repos: %d\n", user.PublicRepos)
+	
+	fmt.Printf("\nAre you sure you want to add %s's SSH keys? (y/N): ", displayName)
+	
+	var response string
+	fmt.Scanln(&response)
+	
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "y" || response == "yes"
 }
