@@ -97,20 +97,16 @@ download_binary() {
     local binary_name="ask-$os-$arch"
     local download_url="https://github.com/$REPO/releases/download/$tag/$binary_name"
     
-    print_info "Downloading $binary_name from $download_url..."
-    
     if command -v curl >/dev/null 2>&1; then
-        curl -L "$download_url" -o "$binary_name"
+        curl -L "$download_url" -o "$binary_name" >/dev/null 2>&1
     elif command -v wget >/dev/null 2>&1; then
-        wget "$download_url" -O "$binary_name"
+        wget "$download_url" -O "$binary_name" >/dev/null 2>&1
     else
-        print_error "Neither curl nor wget found. Please install one of them."
-        exit 1
+        return 1
     fi
     
     if [[ ! -f "$binary_name" ]]; then
-        print_error "Failed to download binary"
-        exit 1
+        return 1
     fi
     
     echo "$binary_name"
@@ -180,7 +176,15 @@ main() {
     print_info "Latest release: $latest_tag"
     
     # Download binary
+    local binary_name="ask-$os-$arch"
+    local download_url="https://github.com/$REPO/releases/download/$latest_tag/$binary_name"
+    print_info "Downloading $binary_name from $download_url..."
+    
     local binary_file=$(download_binary "$latest_tag" "$os" "$arch")
+    if [[ $? -ne 0 || -z "$binary_file" ]]; then
+        print_error "Failed to download binary"
+        exit 1
+    fi
     
     # Install binary
     install_binary "$binary_file"
