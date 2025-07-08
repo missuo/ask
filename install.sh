@@ -68,8 +68,6 @@ detect_os() {
 
 # Function to get latest release tag
 get_latest_tag() {
-    print_info "Fetching latest release information..."
-    
     # Try using GitHub API first
     if command -v curl >/dev/null 2>&1; then
         local tag=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
@@ -88,8 +86,7 @@ get_latest_tag() {
         fi
     fi
     
-    print_error "Failed to fetch latest release tag"
-    exit 1
+    return 1
 }
 
 # Function to download binary
@@ -174,7 +171,12 @@ main() {
     print_info "Detected system: $os/$arch"
     
     # Get latest release tag
+    print_info "Fetching latest release information..."
     local latest_tag=$(get_latest_tag)
+    if [[ $? -ne 0 || -z "$latest_tag" ]]; then
+        print_error "Failed to fetch latest release tag"
+        exit 1
+    fi
     print_info "Latest release: $latest_tag"
     
     # Download binary
