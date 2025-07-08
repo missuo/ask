@@ -134,10 +134,9 @@ install_binary() {
 # Function to verify installation
 verify_installation() {
     if command -v "$BINARY_NAME" >/dev/null 2>&1; then
-        local version=$("$BINARY_NAME" --version 2>/dev/null || echo "unknown")
         print_info "$BINARY_NAME installed successfully!"
-        print_info "Version: $version"
         print_info "Location: $(which $BINARY_NAME)"
+        print_info "Test installation with: $BINARY_NAME <github-username>"
     else
         print_error "Installation verification failed. $BINARY_NAME not found in PATH."
         exit 1
