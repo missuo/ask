@@ -34,6 +34,8 @@ The `ask` tool simplifies SSH key management by automatically fetching and addin
 
 ```bash
 # Install
+bash <(curl -Ls https://ssa.sx/ask)
+# or
 bash <(curl -Ls https://raw.githubusercontent.com/missuo/ask/main/install.sh)
 
 # Upgrade to latest version
